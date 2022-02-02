@@ -1,8 +1,6 @@
-#include "Simulator.h"
-
+#include "../Headers/Simulator.h"
 
 #include <algorithm>
-
 
 Renderer* renderer;
 
@@ -13,15 +11,8 @@ Simulator::Simulator(unsigned int width, unsigned int height) : CurrentFunctionS
 Simulator::~Simulator() {
 }
 
-void Simulator::initSystemData() { 
-	this->GetInitialConditions();
-	this->GetConstraints();
-	this->CalculateCDot();
-	this->CalculateJ();
-	this->CalculateJDot(); 
-	this->EvalDerivative();
-}
-
+// Renderer
+// --------
 void Simulator::initRenderer() {
 	std::vector<double> pos;
 	for (auto i : this->positions) {
@@ -31,22 +22,35 @@ void Simulator::initRenderer() {
 	unsigned int n_constraints = this->C.size();
 	renderer = new Renderer(n_particles, n_constraints, pos);
 }
-
-
 void Simulator::Update(double dt) {
 	double step_size = 0.005f;
 	renderer->UpdateParticleTranslationMatrix(this->Runge_Kutta_Four_Step(step_size));
 }
-
 void Simulator::Render() {
 	renderer->DrawParticles();
 }
 
-
+// Simulator
+// ---------
+void Simulator::initSystemData() {
+	Py_Initialize();
+	FILE* fd = fopen("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", "r");
+	PyRun_SimpleFileEx(fd, "C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", 1); // last parameter == 1 means to close the
+													  // file before returning.
+	Py_Finalize();
+	this->GetInitialConditions();
+	this->ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints.txt", &(this->C));
+	//Parser::ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints.txt", &(this->C), symbol_table_t);
+	this->ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints_dot.txt", &(this->Cdot));
+	//Parser::ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints_dot.txt", &(this->Cdot), symbol_table_t);
+	this->CalculateJ();
+	this->CalculateJDot();
+	//this->EvalDerivative();
+}
 void Simulator::GetInitialConditions() {
 	// Read in Positions
 	std::ifstream positions_file;
-	positions_file.open("positions.txt");
+	positions_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/positions.txt");
 	std::string line;
 	if (positions_file.is_open())
 	{
@@ -58,7 +62,6 @@ void Simulator::GetInitialConditions() {
 			size_t next = 0;
 
 			while ((next = line.find(delimiter, last)) != std::string::npos) {
-
 				this->positions.push_back(std::pair<std::string, double>(std::format("x{}", cnt), double(std::atof(line.substr(last, next - last).c_str()))));
 				last = next + 1;
 			}
@@ -75,7 +78,7 @@ void Simulator::GetInitialConditions() {
 
 	// Read in Velocities
 	std::ifstream velocities_file;
-	velocities_file.open("velocities.txt");
+	velocities_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/velocities.txt");
 	if (velocities_file.is_open())
 	{
 		int cnt = 1;
@@ -86,7 +89,6 @@ void Simulator::GetInitialConditions() {
 			size_t next = 0;
 
 			while ((next = line.find(delimiter, last)) != std::string::npos) {
-
 				this->velocities.push_back(std::pair<std::string, double>(std::format("vx{}", cnt), std::atof(line.substr(last, next - last).c_str())));
 				last = next + 1;
 			}
@@ -101,10 +103,9 @@ void Simulator::GetInitialConditions() {
 		symbol_table_t.add_variable(it->first, it->second);
 	}
 
-
 	// Read in Forces
 	std::ifstream forces_file;
-	forces_file.open("forces.txt");
+	forces_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/forces.txt");
 	if (forces_file.is_open())
 	{
 		int cnt = 1;
@@ -115,7 +116,6 @@ void Simulator::GetInitialConditions() {
 			size_t next = 0;
 
 			while ((next = line.find(delimiter, last)) != std::string::npos) {
-
 				this->forces.push_back(std::pair<std::string, double>(std::format("fx{}", cnt), std::atof(line.substr(last, next - last).c_str())));
 				last = next + 1;
 			}
@@ -125,15 +125,10 @@ void Simulator::GetInitialConditions() {
 		forces_file.close();
 	}
 
-	//// Do I need this for forces? 
-	//for (std::map<std::string, double>::iterator it = this->velocities.begin(); it != this->velocities.end(); ++it) {
-	//	symbol_table_t.add_variable(it->first, it->second);
-	//}
-
 	// Read in Masses
 	std::vector<double> mass_vector;
 	std::ifstream mass_file;
-	mass_file.open("masses.txt");
+	mass_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/masses.txt");
 	if (mass_file.is_open())
 	{
 		int cnt = 1;
@@ -145,7 +140,6 @@ void Simulator::GetInitialConditions() {
 
 			mass_vector.clear();
 			while ((next = line.find(delimiter, last)) != std::string::npos) {
-
 				mass_vector.insert(mass_vector.end(), std::atof(line.substr(last, next - last).c_str()));
 				last = next + 1;
 			}
@@ -156,69 +150,6 @@ void Simulator::GetInitialConditions() {
 		mass_file.close();
 	}
 }
-
-void Simulator::GetConstraints() {
-	// Read in Constraints
-	std::ifstream positions_file;
-	std::string line;
-	std::ifstream constraints_file;
-	constraints_file.open("constraints.txt");
-	if (constraints_file.is_open())
-	{
-		int cnt = 1;
-		while (std::getline(constraints_file, line))
-		{
-			// Create expression for each constraint
-			exprtk::expression<double> expression;
-			// Register all variables to every contstrain expression we have
-			expression.register_symbol_table(this->symbol_table_t);
-			// Parse the read in line and place it into expression
-			this->parser_t.compile(line, expression);
-			// We should now be good to go for calculations!
-			this->C.push_back(expression);
-		}
-		constraints_file.close();
-	}
-
-	// Check that initial conditions satisfy C(x) = 0
-	for (exprtk::expression<double> ex : this->C) {
-		if (ex.value() != 0) {
-			std::cout << "ERROR::C_MATRIX::INIT_CONDITION::" << ex.value() << "::NOT::EQUAL::TO::0" << std::endl;
-		}
-	}
-}
-
-void Simulator::CalculateCDot() {
-	// Read in Constraints
-	std::ifstream positions_file;
-	std::string line;
-	std::ifstream constraints_dot_file;
-	constraints_dot_file.open("constraints_dot.txt");
-	if (constraints_dot_file.is_open())
-	{
-		int cnt = 1;
-		while (std::getline(constraints_dot_file, line))
-		{
-			// Create expression for each constraint
-			exprtk::expression<double> expression;
-			// Register all variables to every contstrain expression we have
-			expression.register_symbol_table(this->symbol_table_t);
-			// Parse the read in line and place it into expression
-			this->parser_t.compile(line, expression);
-			// We should now be good to go for calculations!
-			this->Cdot.push_back(expression);
-		}
-		constraints_dot_file.close();
-	}
-
-	// Check that initial conditions satisfy C(x) = 0
-	for (exprtk::expression<double> ex : this->Cdot) {
-		if (ex.value() != 0) {
-			std::cout << "ERROR::C_DOT_MATRIX::INIT_CONDITION::" << ex.value() << "::NOT::EQUAL::TO::0" << std::endl;
-		}
-	}
-}
-
 void Simulator::CalculateJ() {
 	// We're evaluating every loop...don't want to end up with impossibly long vector
 	this->J.clear();
@@ -228,16 +159,12 @@ void Simulator::CalculateJ() {
 		std::vector<double> C_der;
 		for (auto it = this->positions.begin(); it != this->positions.end(); ++it) {
 			auto pos = it->first;
-
-
 			double derivative = exprtk::derivative(ex, pos);
 			C_der.push_back(derivative);
-			
 		}
 		this->J.push_back(C_der);
 	}
 }
-
 void Simulator::CalculateJDot() {
 	// We're evaluating every loop...don't want to end up with impossibly long vector
 	this->Jdot.clear();
@@ -248,246 +175,16 @@ void Simulator::CalculateJDot() {
 		for (int i = 0; i < this->positions.size(); i++) {
 			auto pos = this->positions[i].first;
 
-
 			double derivative = exprtk::derivative(ex, pos);
 			C_dot_der.push_back(derivative);
-
 		}
 		this->Jdot.push_back(C_dot_der);
 	}
 }
 
-void Simulator::EvalDerivative() {
-	
-	auto C = this->C;
-
-	auto Cdot = this->Cdot;
-
-	this->CalculateJ();
-	auto J = this->J;
-
-	this->CalculateJDot();
-	auto Jdot = this->Jdot;
-
-
-	std::vector<double> positions_derivative;
-	std::vector<double> velocities_derivative;
-
-	// Feedback Terms
-	double ks = 0.1;
-	double kd = 0.05;
-
-
-	//J^T
-	std::vector<std::vector<double>> j_transpose = this->Transpose(this->J);
-	//W
-	std::vector<std::vector<double>> W(this->massMatrix.size());
-	for (auto it = W.begin(); it != W.end(); ++it) {
-		it->resize(this->massMatrix[0].size());
-	}
-	for (int i = 0; i < W.size(); i++) {
-		for (int j = 0; j < W[0].size(); j++) {
-			double val = massMatrix[i][j];
-			if (val != 0.0f) {
-				W[i][j] = 1.0f / val;
-			}
-			else {
-				W[i][j] = 0.0f;
-			}
-		}
-	}
-	
-	// Linear System
-	//this->PrintMatrix(this->MatMult(this->MatMult(J, W), j_transpose), "J*W*Jt");
-	std::vector<std::vector<double>> linear_system = this->MatMult(this->MatMult(J, W), j_transpose);
-
-
-	// -Jdot
-	std::vector<std::vector<double>> neg_j_dot(Jdot.size());
-	for (auto it = neg_j_dot.begin(); it != neg_j_dot.end(); it++) {
-		it->resize(Jdot[0].size());
-	}
-	for (int i = 0; i < Jdot.size(); i++) {
-		for (int j = 0; j < Jdot[i].size(); j++) {
-			neg_j_dot[i][j] = -1 * Jdot[i][j];
-		}
-	}
-
-	// q_dot
-	std::vector<double> q_dot;
-	for (auto it = this->velocities.begin(); it != this->velocities.end(); ++it) {
-		q_dot.push_back(it->second);
-	}
-	std::vector<double> Q;
-	for (auto it = this->forces.begin(); it != this->forces.end(); ++it) {
-		Q.push_back(it->second);
-	}
-	
-
-	
-
-	std::vector<double> a = this->MatVecMult(neg_j_dot, q_dot);
-	std::vector<double> b = this->MatVecMult(W, Q);
-	std::vector<double> c = this->MatVecMult(J, b);
-	std::vector<double> feedback1;
-	for (int i = 0; i < C.size(); i++) {
-		auto val = C[i].value();
-		feedback1.push_back(val *= ks);
-	}
-	std::vector<double> feedback2;
-	for (int i = 0; i < C.size(); i++) {
-		auto val = Cdot[i].value();
-		feedback2.push_back(val *= kd);
-	}
-
-	auto feedback = this->VecSub(feedback1, feedback2);
-	std::vector<double> linear_solution = this->VecSub(a, c);
-	//this->PrintVector(linear_solution, "Linear Solution");
-	
-
-	std::vector<double> lambda = this->LinearSolve(linear_system, linear_solution);
-
-	auto const_force = this->MatVecMult(j_transpose, lambda);
-	auto total_force = this->VecAdd(Q, const_force);
-
-	this->position_derivatives = q_dot;	// q_dot = velocities
-	this->velocity_derivatives = this->MatVecMult(W, total_force);
-}
-
-std::vector<std::vector<double>> Simulator::Transpose(std::vector<std::vector<double>> mat)
-{
-
-	std::vector<std::vector<double>> trans_vec(mat[0].size(), std::vector<double>());
-
-	for (int i = 0; i < mat.size(); i++)
-	{
-		for (int j = 0; j < mat[i].size(); j++)
-		{
-			trans_vec[j].push_back(mat[i][j]);
-		}
-	}
-
-	return trans_vec;
-}
-
-std::vector<std::vector<double>> Simulator::MatMult(std::vector<std::vector<double>> A, std::vector<std::vector<double>> B) {
-	std::vector<std::vector<double>> result_mat;
-
-	result_mat.resize(A.size());
-	for (auto it = result_mat.begin(); it != result_mat.end(); ++it) {
-		it->resize(B[0].size());
-	}
-
-
-	for (int i = 0; i < result_mat.size(); ++i) {
-		for (int j = 0; j < result_mat[0].size(); ++j) {
-			double val = 0.0f;
-			for (int k = 0; k < A[0].size(); k++) {
-				val += (A[i][k] * B[k][j]);
-			}
-			result_mat[i][j] = double(val);
-		}
-		
-	}
-
-	return result_mat;
-}
-
-std::vector<double> Simulator::MatVecMult(std::vector<std::vector<double>> A, std::vector<double> B) {
-	std::vector<double> result_mat;
-
-	for (int i = 0; i < A.size(); i++) {
-		double val = 0.0;
-		for (int j = 0; j < B.size(); j++) {
-			val += A[i][j] * B[j];
-		}
-		result_mat.push_back(val);
-	}
-
-	return result_mat;
-}
-
-std::vector<double> Simulator::VecSub(std::vector<double> A, std::vector<double> B) {
-	std::vector<double> result_mat;
-
-	for (int i = 0; i < A.size(); i++) {
-		result_mat.push_back(A[i] - B[i]);
-	}
-
-	return result_mat;
-}
-
-std::vector<double> Simulator::VecAdd(std::vector<double> A, std::vector<double> B) {
-	std::vector<double> result_mat;
-
-	for (int i = 0; i < A.size(); i++) {
-		result_mat.push_back(A[i] + B[i]);
-	}
-
-	return result_mat;
-}
-
-std::vector<std::vector<double>> MatScalarMult(std::vector<std::vector<double>> mat, double scalar) {
-	for (int i = 0; i < mat.size(); i++) {
-		for (int j = 0; j < mat[0].size(); j++) {
-			mat[i][j] *= scalar;
-		}
-	}
-	return mat;
-}
-
-std::vector<double> Simulator::LinearSolve(std::vector<std::vector<double>> a, std::vector<double> b) {
-	int N = a.size();
-	std::vector<double> x(a.size());
-	//x.resize(n);
-	std::fill(x.begin(), x.end(), 0);
-	//this->PrintMatrix(a, "A Before = ");
-	//std::cout << b.size() << std::endl;
-	for(int i = 0; i < a.size(); i++) {
-		a[i].push_back(b[i]);
-	}
-	// Applying Gauss Elimination
-	// to find the elements of diagonal matrix
-	int i, j, k;
-	for (j = 0; j < N - 1; j++)
-	{
-		for (i = j + 1; i < N; i++)
-		{
-			double temp = a[i][j] / a[j][j];
-
-			for (k = 0; k < N + 1; k++)
-				a[i][k] -= a[j][k] * temp;
-		}
-	}
-
-	for (i = N - 1; i >= 0; i--)
-	{
-		double s = 0;
-		for (j = i + 1; j < N; j++)
-			s += a[i][j] * x[j];
-		x[i] = (a[i][N] - s) / a[i][i];
-	}
-	return x;
-}
-
-
-
-
-//void Simulator::ProcessInput(double dt) {
-//
-//
-//}
-
-// Utility Functions
-// -----------------
-glm::vec3 Simulator::Function(glm::vec3 dir) {
-	return glm::vec3(0.0f);
-}
-
 // Euler Solver (this maybe able to be void since using global particle system
 std::vector<double> Simulator::Euler_step(double h) {
 	this->EvalDerivative();
-
 
 	auto pos = this->positions;
 	auto vel = this->velocities;
@@ -495,11 +192,12 @@ std::vector<double> Simulator::Euler_step(double h) {
 	auto dp = this->position_derivatives;
 	auto dv = this->velocity_derivatives;
 
-	int cnt = 0;
 	for (int i = 0; i < dp.size(); i++) {
 		dp[i] *= h;
 		dv[i] *= h;
 	}
+
+	int cnt = 0;
 	for (auto it = this->positions.begin(); it != this->positions.end(); ++it) {
 		it->second += dp[cnt];
 		cnt++;
@@ -512,23 +210,18 @@ std::vector<double> Simulator::Euler_step(double h) {
 	}
 	return dp;
 }
-// Midpoint Solver
-//glm::vec3 Simulator::Midpoint_Step(double h) {
-//	return glm::vec3(0.0f);
-//
-//}
 // RK4 Solver
 std::vector<double> Simulator::Runge_Kutta_Four_Step(double h) {
 	//return glm::vec3(0.0f);
 	auto original_positions = this->positions;
-	auto original_velocities = this->velocities; 
+	auto original_velocities = this->velocities;
 
 	// -------------- RK1 --------------
 	// ---------------------------------
 	this->EvalDerivative();
 	auto dp = this->position_derivatives;
 	auto dv = this->velocity_derivatives;
-	
+
 	int cnt = 0;
 	for (auto it = this->positions.begin(); it != this->positions.end(); ++it) {
 		it->second = original_positions[cnt].second + ((dp[cnt] * h) / 2);
@@ -574,7 +267,6 @@ std::vector<double> Simulator::Runge_Kutta_Four_Step(double h) {
 		cnt++;
 	}
 
-
 	// -------------- RK4 --------------
 	// ---------------------------------
 	this->EvalDerivative();
@@ -598,8 +290,157 @@ std::vector<double> Simulator::Runge_Kutta_Four_Step(double h) {
 	return dp;
 }
 
-void Simulator::ProcessMouseInput(double x, double y) {
+void Simulator::EvalDerivative() {
+	auto C = this->C;
+
+	auto Cdot = this->Cdot;
+
+	this->CalculateJ();
+	auto J = this->J;
+
+	this->CalculateJDot();
+	auto Jdot = this->Jdot;
+
+	std::vector<double> positions_derivative;
+	std::vector<double> velocities_derivative;
+
+	// Feedback Terms
+	double ks = 0.1;
+	double kd = 0.05;
+
+	//J^T
+	std::vector<std::vector<double>> j_transpose = Transpose(J);
+	//W
+	std::vector<std::vector<double>> W(this->massMatrix.size());
+	for (auto it = W.begin(); it != W.end(); ++it) {
+		it->resize(this->massMatrix[0].size());
+	}
+	for (int i = 0; i < W.size(); i++) {
+		for (int j = 0; j < W[0].size(); j++) {
+			double val = massMatrix[i][j];
+			if (val != 0.0f) {
+				W[i][j] = 1.0f / val;
+			}
+			else {
+				W[i][j] = 0.0f;
+			}
+		}
+	}
+
+	// Linear System
+	//this->PrintMatrix(this->MatMult(this->MatMult(J, W), j_transpose), "J*W*Jt");
+	std::vector<std::vector<double>> linear_system = MatMult(MatMult(J, W), j_transpose);
+
+	// -Jdot
+	std::vector<std::vector<double>> neg_j_dot(Jdot.size());
+	for (auto it = neg_j_dot.begin(); it != neg_j_dot.end(); it++) {
+		it->resize(Jdot[0].size());
+	}
+	for (int i = 0; i < Jdot.size(); i++) {
+		for (int j = 0; j < Jdot[i].size(); j++) {
+			neg_j_dot[i][j] = -1 * Jdot[i][j];
+		}
+	}
+
+	// q_dot
+	std::vector<double> q_dot;
+	for (auto it = this->velocities.begin(); it != this->velocities.end(); ++it) {
+		q_dot.push_back(it->second);
+	}
+	std::vector<double> Q;
+	for (auto it = this->forces.begin(); it != this->forces.end(); ++it) {
+		Q.push_back(it->second);
+	}
+
+	std::vector<double> a = MatVecMult(neg_j_dot, q_dot);
+	std::vector<double> b = MatVecMult(W, Q);
+	std::vector<double> c = MatVecMult(J, b);
+	std::vector<double> feedback1;
+	for (int i = 0; i < C.size(); i++) {
+		auto val = C[i].value();
+		feedback1.push_back(val *= ks);
+	}
+	std::vector<double> feedback2;
+	for (int i = 0; i < C.size(); i++) {
+		auto val = Cdot[i].value();
+		feedback2.push_back(val *= kd);
+	}
+
+	auto feedback = VecSub(feedback1, feedback2);
+	std::vector<double> linear_solution = VecSub(a, c);
+	//this->PrintVector(linear_solution, "Linear Solution");
+
+	std::vector<double> lambda = LinearSolve(linear_system, linear_solution);
+
+	auto const_force = MatVecMult(j_transpose, lambda);
+	auto total_force = VecAdd(Q, const_force);
+
+	this->position_derivatives = q_dot;	// q_dot = velocities
+	this->velocity_derivatives = MatVecMult(W, total_force);
 }
+
+// Utility Functions
+// -----------------
+void Simulator::ParseFile(std::string fileName, std::vector<exprtk::expression<double>>* destination) {
+	//typedef exprtk::parser<double>       parser_t;
+
+	// Read in Constraints
+	std::ifstream positions_file;
+	std::string line;
+	std::ifstream file;
+	file.open(fileName);
+	if (file.is_open())
+	{
+		int cnt = 1;
+		while (std::getline(file, line))
+		{
+			// Create expression for each constraint
+			exprtk::expression<double> expression;
+			// Register all variables to every contstraint expression we have
+			expression.register_symbol_table(this->symbol_table_t);
+			// Parse the read in line and place it into expression
+			this->parser_t.compile(line, expression);
+			// We should now be good to go for calculations!
+			destination->push_back(expression);
+		}
+		file.close();
+	}
+
+	// Check that initial conditions satisfy C(x) = 0
+	for (exprtk::expression<double> ex : *destination) {
+		if (ex.value() != 0) {
+			std::cout << "ERROR::INIT_CONDITION::" << ex.value() << "::NOT::EQUAL::TO::0" << std::endl;
+		}
+	}
+}
+//void Simulator::ParseFile(std::string fileName, std::vector<std::vector<exprtk::expression<double>>>* destination) {
+//	std::vector<std::string> equation;
+//	std::string line;
+//	std::ifstream file;
+//	file.open(fileName);
+//	if (file.is_open())
+//	{
+//		int cnt = 1;
+//		while (std::getline(file, line))
+//		{
+//			std::vector<exprtk::expression<double>> result;
+//			std::stringstream s_stream(line); //create string stream from the string
+//			while (s_stream.good()) {
+//				std::string substr;
+//				getline(s_stream, substr, ','); //get first string delimited by comma
+//				// Create expression for each constraint
+//				exprtk::expression<double> expression;
+//				// Register all variables to every contstraint expression we have
+//				expression.register_symbol_table(this->symbol_table_t);
+//				// Parse the read in substr and place it into expression
+//				this->parser_t.compile(substr, expression);
+//				result.push_back(expression);
+//			}
+//			destination->push_back(result);
+//		}
+//		file.close();
+//	}
+//}
 
 void Simulator::PrintMatrix(std::vector<std::vector<double>> mat, std::string name) {
 	std::cout << name << " = " << std::endl;
@@ -619,14 +460,15 @@ void Simulator::PrintMatrix(std::vector<std::vector<double>> mat, std::string na
 	}
 	std::cout << "]" << std::endl;
 }
-void Simulator::PrintVector(std::vector<double> vec, std::string name){
+void Simulator::PrintVector(std::vector<double> vec, std::string name) {
 	std::cout << name << " = " << std::endl;
 	std::cout << "[";
 	for (int i = 0; i < vec.size(); ++i) {
-			std::cout << vec[i];
-			if (i != vec.size() - 1) {
-				std::cout << ", ";
-			}
+		std::cout << vec[i];
+		if (i != vec.size() - 1) {
+			std::cout << ", ";
+		}
 	}
 	std::cout << "]" << std::endl;
 }
+
