@@ -96,12 +96,10 @@ void Renderer::DrawParticles() {
 void Renderer::UpdateParticleTranslationMatrix(std::vector<double> dp) {
 	int cnt = 0;
 	for (int i = 0; i < this->particleTransformMatricies.size(); i++) {
-		//this->particleTransformMatricies[i] = glm::mat4(1.0f);
 		glm::mat4 mod = this->particleTransformMatricies[i];
 		mod = glm::translate(mod, glm::vec3(dp[cnt], dp[cnt + 1], 0));
 		this->particleTransformMatricies[i] = mod;
-		cnt++;
-		cnt++;
+		cnt += 2;
 	}
 }
 

@@ -5,10 +5,16 @@
 
 Renderer* renderer;
 Parser* parser;
+Logger* logger;
 
 Simulator::Simulator(unsigned int width, unsigned int height) : CurrentFunctionState(FUNCTION_ONE), CurrentSolverState(EULER_SOLVER), Keys(), Width(width), Height(height) {
 	PreviousFunctionState = CurrentFunctionState;
 }
+
+Simulator::~Simulator() {
+
+}
+
 
 // Simulator
 // ---------
@@ -16,7 +22,6 @@ void Simulator::initSystem() {
 	// Generate Data
 	Py_Initialize();
 	FILE* fd = fopen("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", "r");
-	// last parameter == 1 means to close the file before returning.
 	PyRun_SimpleFileEx(fd, "C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", 1);
 	Py_Finalize();
 
@@ -27,6 +32,7 @@ void Simulator::initSystem() {
 	this->CalculateJ();
 	this->CalculateJDot();
 
+	// Initialize Renderer
 	this->initRenderer();
 
 }
@@ -43,6 +49,28 @@ void Simulator::GetInitialConditions() {
 	// Read in Masses
 	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/masses.txt", &(this->massMatrix), symbol_table_t);
 }
+
+// Renderer
+// --------
+void Simulator::initRenderer() {
+	std::vector<double> pos;
+	for (auto i : this->positions) {
+		pos.push_back(i.second);
+	}
+	unsigned int n_particles = this->positions.size() / 2;
+	unsigned int n_constraints = this->C.size();
+	renderer = new Renderer(n_particles, n_constraints, pos);
+	parser = new Parser();
+	logger = new Logger();
+}
+void Simulator::Update(double dt) {
+	double step_size = 0.005f;
+	renderer->UpdateParticleTranslationMatrix(this->Runge_Kutta_Four_Step(step_size));
+}
+void Simulator::Render() {
+	renderer->DrawParticles();
+}
+
 void Simulator::CalculateJ() {
 	// We're evaluating every loop...don't want to end up with impossibly long vector
 	this->J.clear();
@@ -74,30 +102,6 @@ void Simulator::CalculateJDot() {
 		this->Jdot.push_back(C_dot_der);
 	}
 }
-
-// Renderer
-// --------
-void Simulator::initRenderer() {
-	std::vector<double> pos;
-	for (auto i : this->positions) {
-		pos.push_back(i.second);
-	}
-	unsigned int n_particles = this->positions.size() / 2;
-	unsigned int n_constraints = this->C.size();
-	renderer = new Renderer(n_particles, n_constraints, pos);
-	parser = new Parser();
-}
-
-void Simulator::Update(double dt) {
-	double step_size = 0.005f;
-	renderer->UpdateParticleTranslationMatrix(this->Runge_Kutta_Four_Step(step_size));
-}
-void Simulator::Render() {
-	renderer->DrawParticles();
-}
-
-
-
 // Euler Solver (this maybe able to be void since using global particle system
 std::vector<double> Simulator::Euler_step(double h) {
 	this->EvalDerivative();
@@ -205,7 +209,6 @@ std::vector<double> Simulator::Runge_Kutta_Four_Step(double h) {
 	}
 	return dp;
 }
-
 void Simulator::EvalDerivative() {
 	auto C = this->C;
 
@@ -234,17 +237,14 @@ void Simulator::EvalDerivative() {
 	for (int i = 0; i < W.size(); i++) {
 		for (int j = 0; j < W[0].size(); j++) {
 			double val = massMatrix[i][j];
-			if (val != 0.0f) {
+			if (val != 0.0f) 
 				W[i][j] = 1.0f / val;
-			}
-			else {
+			else 
 				W[i][j] = 0.0f;
-			}
 		}
 	}
 
 	// Linear System
-	//this->PrintMatrix(this->MatMult(this->MatMult(J, W), j_transpose), "J*W*Jt");
 	std::vector<std::vector<double>> linear_system = MatMult(MatMult(J, W), j_transpose);
 
 	// -Jdot
@@ -284,7 +284,7 @@ void Simulator::EvalDerivative() {
 
 	auto feedback = VecSub(feedback1, feedback2);
 	std::vector<double> linear_solution = VecSub(a, c);
-	//this->PrintVector(linear_solution, "Linear Solution");
+	logger->PrintVector(linear_solution, "Linear Solution");
 
 	std::vector<double> lambda = LinearSolve(linear_system, linear_solution);
 
@@ -293,34 +293,4 @@ void Simulator::EvalDerivative() {
 
 	this->position_derivatives = q_dot;	// q_dot = velocities
 	this->velocity_derivatives = MatVecMult(W, total_force);
-}
-
-void Simulator::PrintMatrix(std::vector<std::vector<double>> mat, std::string name) {
-	std::cout << name << " = " << std::endl;
-	std::cout << "[";
-	for (int i = 0; i < mat.size(); ++i) {
-		std::cout << "[";
-		for (int j = 0; j < mat[0].size(); ++j) {
-			std::cout << mat[i][j];
-			if (j != mat[0].size() - 1) {
-				std::cout << ", ";
-			}
-		}
-		std::cout << "]";
-		if (i != mat.size() - 1) {
-			std::cout << ",\n";
-		}
-	}
-	std::cout << "]" << std::endl;
-}
-void Simulator::PrintVector(std::vector<double> vec, std::string name) {
-	std::cout << name << " = " << std::endl;
-	std::cout << "[";
-	for (int i = 0; i < vec.size(); ++i) {
-		std::cout << vec[i];
-		if (i != vec.size() - 1) {
-			std::cout << ", ";
-		}
-	}
-	std::cout << "]" << std::endl;
 }

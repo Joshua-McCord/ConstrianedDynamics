@@ -3,6 +3,7 @@
 #include "Renderer.h"
 #include "MathLib.h"
 #include "Parser.h"
+#include "Logger.h"
 #include <vector>
 #include <map>
 #include <iostream>
@@ -89,11 +90,5 @@ private:
 	// ---------
 	exprtk::parser<double>		parser_t;
 	exprtk::symbol_table<double> symbol_table_t;
-
-
-
-	void PrintMatrix(std::vector<std::vector<double>> mat, std::string name);
-	void PrintVector(std::vector<double> vec, std::string name);
-
 	
 };
