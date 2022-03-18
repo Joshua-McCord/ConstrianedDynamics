@@ -10,38 +10,14 @@ Simulator::Simulator(unsigned int width, unsigned int height) : CurrentFunctionS
 	PreviousFunctionState = CurrentFunctionState;
 }
 
-Simulator::~Simulator() {
-}
-
-// Renderer
-// --------
-void Simulator::initRenderer() {
-	std::vector<double> pos;
-	for (auto i : this->positions) {
-		pos.push_back(i.second);
-	}
-	unsigned int n_particles = this->positions.size() / 2;
-	unsigned int n_constraints = this->C.size();
-	renderer = new Renderer(n_particles, n_constraints, pos);
-	parser = new Parser();
-}
-
-void Simulator::Update(double dt) {
-	double step_size = 0.005f;
-	renderer->UpdateParticleTranslationMatrix(this->Runge_Kutta_Four_Step(step_size));
-}
-void Simulator::Render() {
-	renderer->DrawParticles();
-}
-
 // Simulator
 // ---------
-void Simulator::initSystemData() {
+void Simulator::initSystem() {
 	// Generate Data
 	Py_Initialize();
 	FILE* fd = fopen("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", "r");
 	// last parameter == 1 means to close the file before returning.
-	PyRun_SimpleFileEx(fd, "C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", 1); 
+	PyRun_SimpleFileEx(fd, "C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", 1);
 	Py_Finalize();
 
 	// Load Data
@@ -50,6 +26,8 @@ void Simulator::initSystemData() {
 	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints_dot.txt", &(this->Cdot), symbol_table_t);
 	this->CalculateJ();
 	this->CalculateJDot();
+
+	this->initRenderer();
 
 }
 void Simulator::GetInitialConditions() {
@@ -96,6 +74,29 @@ void Simulator::CalculateJDot() {
 		this->Jdot.push_back(C_dot_der);
 	}
 }
+
+// Renderer
+// --------
+void Simulator::initRenderer() {
+	std::vector<double> pos;
+	for (auto i : this->positions) {
+		pos.push_back(i.second);
+	}
+	unsigned int n_particles = this->positions.size() / 2;
+	unsigned int n_constraints = this->C.size();
+	renderer = new Renderer(n_particles, n_constraints, pos);
+	parser = new Parser();
+}
+
+void Simulator::Update(double dt) {
+	double step_size = 0.005f;
+	renderer->UpdateParticleTranslationMatrix(this->Runge_Kutta_Four_Step(step_size));
+}
+void Simulator::Render() {
+	renderer->DrawParticles();
+}
+
+
 
 // Euler Solver (this maybe able to be void since using global particle system
 std::vector<double> Simulator::Euler_step(double h) {

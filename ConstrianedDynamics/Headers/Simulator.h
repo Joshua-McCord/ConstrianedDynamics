@@ -45,7 +45,7 @@ public:
 
 	// init sim
 	// --------
-	void initSystemData();
+	void initSystem();
 	void initRenderer();
 
 	// updating and rendering

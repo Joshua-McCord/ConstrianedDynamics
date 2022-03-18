@@ -145,21 +145,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Src\glad.c" />
+    <ClCompile Include="Src\Logger.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\MathLib.cpp" />
     <ClCompile Include="Src\Parser.cpp" />
     <ClCompile Include="Src\Renderer.cpp" />
     <ClCompile Include="Shaders\Shader.cpp" />
     <ClCompile Include="Src\Simulator.cpp" />
-    <ClCompile Include="Src\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Headers\Logger.h" />
     <ClInclude Include="Headers\MathLib.h" />
     <ClInclude Include="Headers\Parser.h" />
     <ClInclude Include="Headers\Renderer.h" />
     <ClInclude Include="Headers\Shader.h" />
     <ClInclude Include="Headers\Simulator.h" />
-    <ClInclude Include="Headers\Util.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Constraints\constraints.txt" />

@@ -33,10 +33,10 @@
     <ClCompile Include="Src\MathLib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Util.cpp">
+    <ClCompile Include="Src\Parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Parser.cpp">
+    <ClCompile Include="Src\Logger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,10 +53,10 @@
     <ClInclude Include="Headers\MathLib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Util.h">
+    <ClInclude Include="Headers\Parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Headers\Parser.h">
+    <ClInclude Include="Headers\Logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

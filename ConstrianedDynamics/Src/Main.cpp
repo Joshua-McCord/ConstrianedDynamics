@@ -19,7 +19,7 @@ Simulator Sim(1000, 1000);
 int main()
 {
 	// Go ahead and get information and init everything before window appears since we have to read from CLI
-	Sim.initSystemData();
+
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -49,8 +49,7 @@ int main()
 	float lastFrame = 0.0f;
 	
 
-
-	Sim.initRenderer();
+	Sim.initSystem();
 
 	
 	while (!glfwWindowShouldClose(window)) {
