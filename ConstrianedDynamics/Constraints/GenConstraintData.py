@@ -2,7 +2,7 @@ from sympy import *
 from sympy.matrices import *
 from sympy.parsing import *
 
-FOLDER_DIR = 'C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/'
+FOLDER_DIR = 'C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/'
 
 def parseFile(fileName):
     lst = []
@@ -54,6 +54,8 @@ for eq in C:
 writeCDot(Cdot)
 writeForces(n_particles)
 writeMasses(n_particles)
+
+print('Hello, World')
 
 #0.5 * ((x2 - x3)*(x2 - x3) + (y2 - y3)*(y2 - y3)) - 0.125
 #

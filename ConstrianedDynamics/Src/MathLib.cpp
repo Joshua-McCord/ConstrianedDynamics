@@ -76,15 +76,11 @@ std::vector<std::vector<double>> MatScalarMult(std::vector<std::vector<double>> 
 std::vector<double> LinearSolve(std::vector<std::vector<double>> a, std::vector<double> b) {
 	int N = a.size();
 	std::vector<double> x(a.size());
-	//x.resize(n);
 	std::fill(x.begin(), x.end(), 0);
-	//this->PrintMatrix(a, "A Before = ");
-	//std::cout << b.size() << std::endl;
 	for (int i = 0; i < a.size(); i++) {
 		a[i].push_back(b[i]);
 	}
-	// Applying Gauss Elimination
-	// to find the elements of diagonal matrix
+	// Applying Gauss Elimination to find the elements of diagonal matrix
 	int i, j, k;
 	for (j = 0; j < N - 1; j++)
 	{

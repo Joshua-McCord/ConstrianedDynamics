@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <string>
 #include "../Headers/Simulator.h"
-//#include "exprtk.hpp"
 
 #include <stdlib.h>     //for using the function sleep
 
@@ -15,43 +14,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 static void mouse_callback(GLFWwindow* window, int button, int action, int mods);
 
-//template <typename T>
-//void trig_function() {
-//	typedef exprtk::symbol_table<T> symbol_table_t;
-//	typedef exprtk::expression<T>   expression_t;
-//	typedef exprtk::parser<T>       parser_t;
-//
-//	const std::string expression_string =
-//		"(x^3) + (y^3) + 5";
-//
-//	T x;
-//	T y;
-//
-//	symbol_table_t symbol_table;
-//	symbol_table.add_variable("x", x);
-//	symbol_table.add_variable("y", y);
-//	symbol_table.add_constants();
-//
-//	expression_t expression;
-//	expression.register_symbol_table(symbol_table);
-//
-//	parser_t parser;
-//	parser.compile(expression_string, expression);
-//
-//	x = T(4);
-//	y = T(1);
-//
-//	T result = exprtk::derivative(expression, x);//expression.value();
-//
-//	std::cout << "Trig > " << result << std::endl;
-//}
-
 Simulator Sim(1000, 1000);
 
 int main()
 {
 	// Go ahead and get information and init everything before window appears since we have to read from CLI
-	
 	Sim.initSystemData();
 
 	glfwInit();
@@ -70,7 +37,7 @@ int main()
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cout << "GLAD Failed" << std::endl;
 		return -1;
-	}
+	}            
 
 	glViewport(0, 0, 1000, 1000);
 
@@ -80,8 +47,8 @@ int main()
 
 	float deltaTime = 0.0f;
 	float lastFrame = 0.0f;
-
 	
+
 
 	Sim.initRenderer();
 
@@ -119,22 +86,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	// when a user presses the escape key, we set the WindowShouldClose property to true, closing the application
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-	//if (key >= 0 && key < 1024)
-	//{
-	//    if (action == GLFW_PRESS)
-	//        //Sim.Keys[key] = true;
-	//    else if (action == GLFW_RELEASE)
-	//        //Sim.Keys[key] = false;
-	//}
 }
 
 static void mouse_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	//if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-	//    double x;
-	//    double y;
-	//    glfwGetCursorPos(window, &x, &y);
 
-	//    Sim.ProcessMouseInput(x, y);
-	//}
 }

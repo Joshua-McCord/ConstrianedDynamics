@@ -2,7 +2,9 @@
 
 #include <algorithm>
 
+
 Renderer* renderer;
+Parser* parser;
 
 Simulator::Simulator(unsigned int width, unsigned int height) : CurrentFunctionState(FUNCTION_ONE), CurrentSolverState(EULER_SOLVER), Keys(), Width(width), Height(height) {
 	PreviousFunctionState = CurrentFunctionState;
@@ -21,7 +23,9 @@ void Simulator::initRenderer() {
 	unsigned int n_particles = this->positions.size() / 2;
 	unsigned int n_constraints = this->C.size();
 	renderer = new Renderer(n_particles, n_constraints, pos);
+	parser = new Parser();
 }
+
 void Simulator::Update(double dt) {
 	double step_size = 0.005f;
 	renderer->UpdateParticleTranslationMatrix(this->Runge_Kutta_Four_Step(step_size));
@@ -33,122 +37,33 @@ void Simulator::Render() {
 // Simulator
 // ---------
 void Simulator::initSystemData() {
+	// Generate Data
 	Py_Initialize();
-	FILE* fd = fopen("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", "r");
-	PyRun_SimpleFileEx(fd, "C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", 1); // last parameter == 1 means to close the
-													  // file before returning.
+	FILE* fd = fopen("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", "r");
+	// last parameter == 1 means to close the file before returning.
+	PyRun_SimpleFileEx(fd, "C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/GenConstraintData.py", 1); 
 	Py_Finalize();
+
+	// Load Data
 	this->GetInitialConditions();
-	this->ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints.txt", &(this->C));
-	//Parser::ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints.txt", &(this->C), symbol_table_t);
-	this->ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints_dot.txt", &(this->Cdot));
-	//Parser::ParseFile("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints_dot.txt", &(this->Cdot), symbol_table_t);
+	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints.txt", &(this->C), symbol_table_t);
+	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/constraints_dot.txt", &(this->Cdot), symbol_table_t);
 	this->CalculateJ();
 	this->CalculateJDot();
-	//this->EvalDerivative();
+
 }
 void Simulator::GetInitialConditions() {
 	// Read in Positions
-	std::ifstream positions_file;
-	positions_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/positions.txt");
-	std::string line;
-	if (positions_file.is_open())
-	{
-		int cnt = 1;
-		while (std::getline(positions_file, line))
-		{
-			std::string delimiter = ",";
-			size_t last = 0;
-			size_t next = 0;
-
-			while ((next = line.find(delimiter, last)) != std::string::npos) {
-				this->positions.push_back(std::pair<std::string, double>(std::format("x{}", cnt), double(std::atof(line.substr(last, next - last).c_str()))));
-				last = next + 1;
-			}
-			this->positions.push_back(std::pair<std::string, double>(std::format("y{}", cnt), double(std::atof(line.substr(last).c_str()))));
-			cnt++;
-		}
-		positions_file.close();
-	}
-
-	// Add all positions to symbol table
-	for (auto it = this->positions.begin(); it != this->positions.end(); ++it) {
-		symbol_table_t.add_variable(it->first, it->second);
-	}
+	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/positions.txt", &(this->positions), symbol_table_t, ' ');
 
 	// Read in Velocities
-	std::ifstream velocities_file;
-	velocities_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/velocities.txt");
-	if (velocities_file.is_open())
-	{
-		int cnt = 1;
-		while (std::getline(velocities_file, line))
-		{
-			std::string delimiter = ",";
-			size_t last = 0;
-			size_t next = 0;
-
-			while ((next = line.find(delimiter, last)) != std::string::npos) {
-				this->velocities.push_back(std::pair<std::string, double>(std::format("vx{}", cnt), std::atof(line.substr(last, next - last).c_str())));
-				last = next + 1;
-			}
-			this->velocities.push_back(std::pair<std::string, double>(std::format("vy{}", cnt), std::atof(line.substr(last).c_str())));
-			cnt++;
-		}
-		velocities_file.close();
-	}
-
-	// Add all velocities to symbol table
-	for (auto it = this->velocities.begin(); it != this->velocities.end(); ++it) {
-		symbol_table_t.add_variable(it->first, it->second);
-	}
+	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/velocities.txt", &(this->velocities), symbol_table_t, 'v');
 
 	// Read in Forces
-	std::ifstream forces_file;
-	forces_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/forces.txt");
-	if (forces_file.is_open())
-	{
-		int cnt = 1;
-		while (std::getline(forces_file, line))
-		{
-			std::string delimiter = ",";
-			size_t last = 0;
-			size_t next = 0;
-
-			while ((next = line.find(delimiter, last)) != std::string::npos) {
-				this->forces.push_back(std::pair<std::string, double>(std::format("fx{}", cnt), std::atof(line.substr(last, next - last).c_str())));
-				last = next + 1;
-			}
-			this->forces.push_back(std::pair<std::string, double>(std::format("fy{}", cnt), std::atof(line.substr(last).c_str())));
-			cnt++;
-		}
-		forces_file.close();
-	}
+	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/forces.txt", &(this->forces), symbol_table_t, 'f');
 
 	// Read in Masses
-	std::vector<double> mass_vector;
-	std::ifstream mass_file;
-	mass_file.open("C:/Users/jmccord34/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/masses.txt");
-	if (mass_file.is_open())
-	{
-		int cnt = 1;
-		while (std::getline(mass_file, line))
-		{
-			std::string delimiter = ",";
-			size_t last = 0;
-			size_t next = 0;
-
-			mass_vector.clear();
-			while ((next = line.find(delimiter, last)) != std::string::npos) {
-				mass_vector.insert(mass_vector.end(), std::atof(line.substr(last, next - last).c_str()));
-				last = next + 1;
-			}
-			mass_vector.insert(mass_vector.end(), std::atof(line.substr(last, next - last).c_str()));
-			massMatrix.push_back(mass_vector);
-			cnt++;
-		}
-		mass_file.close();
-	}
+	parser->ParseFile("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Constraints/masses.txt", &(this->massMatrix), symbol_table_t);
 }
 void Simulator::CalculateJ() {
 	// We're evaluating every loop...don't want to end up with impossibly long vector
@@ -379,69 +294,6 @@ void Simulator::EvalDerivative() {
 	this->velocity_derivatives = MatVecMult(W, total_force);
 }
 
-// Utility Functions
-// -----------------
-void Simulator::ParseFile(std::string fileName, std::vector<exprtk::expression<double>>* destination) {
-	//typedef exprtk::parser<double>       parser_t;
-
-	// Read in Constraints
-	std::ifstream positions_file;
-	std::string line;
-	std::ifstream file;
-	file.open(fileName);
-	if (file.is_open())
-	{
-		int cnt = 1;
-		while (std::getline(file, line))
-		{
-			// Create expression for each constraint
-			exprtk::expression<double> expression;
-			// Register all variables to every contstraint expression we have
-			expression.register_symbol_table(this->symbol_table_t);
-			// Parse the read in line and place it into expression
-			this->parser_t.compile(line, expression);
-			// We should now be good to go for calculations!
-			destination->push_back(expression);
-		}
-		file.close();
-	}
-
-	// Check that initial conditions satisfy C(x) = 0
-	for (exprtk::expression<double> ex : *destination) {
-		if (ex.value() != 0) {
-			std::cout << "ERROR::INIT_CONDITION::" << ex.value() << "::NOT::EQUAL::TO::0" << std::endl;
-		}
-	}
-}
-//void Simulator::ParseFile(std::string fileName, std::vector<std::vector<exprtk::expression<double>>>* destination) {
-//	std::vector<std::string> equation;
-//	std::string line;
-//	std::ifstream file;
-//	file.open(fileName);
-//	if (file.is_open())
-//	{
-//		int cnt = 1;
-//		while (std::getline(file, line))
-//		{
-//			std::vector<exprtk::expression<double>> result;
-//			std::stringstream s_stream(line); //create string stream from the string
-//			while (s_stream.good()) {
-//				std::string substr;
-//				getline(s_stream, substr, ','); //get first string delimited by comma
-//				// Create expression for each constraint
-//				exprtk::expression<double> expression;
-//				// Register all variables to every contstraint expression we have
-//				expression.register_symbol_table(this->symbol_table_t);
-//				// Parse the read in substr and place it into expression
-//				this->parser_t.compile(substr, expression);
-//				result.push_back(expression);
-//			}
-//			destination->push_back(result);
-//		}
-//		file.close();
-//	}
-//}
-
 void Simulator::PrintMatrix(std::vector<std::vector<double>> mat, std::string name) {
 	std::cout << name << " = " << std::endl;
 	std::cout << "[";
@@ -471,4 +323,3 @@ void Simulator::PrintVector(std::vector<double> vec, std::string name) {
 	}
 	std::cout << "]" << std::endl;
 }
-

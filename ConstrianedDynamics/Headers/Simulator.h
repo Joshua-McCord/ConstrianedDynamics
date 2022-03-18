@@ -2,7 +2,7 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #include "Renderer.h"
 #include "MathLib.h"
-//#include "Util.h"
+#include "Parser.h"
 #include <vector>
 #include <map>
 #include <iostream>
@@ -19,7 +19,7 @@
 #include <glm/vec3.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
-#include "exprtk.hpp"
+#include <exprtk/exprtk.hpp>
 #include <Python.h>
 
 enum FunctionState {
@@ -58,8 +58,7 @@ public:
 	std::vector<double> Euler_step(double h);
 	std::vector<double> Runge_Kutta_Four_Step(double h);
 
-	exprtk::parser<double>		parser_t;
-	exprtk::symbol_table<double> symbol_table_t;
+
 
 private:
 	// Global Simulator State Data
@@ -88,8 +87,10 @@ private:
 
 	// Utilities
 	// ---------
-	void ParseFile(std::string fileName, std::vector<exprtk::expression<double>>* destination);
-	void ParseFile(std::string fileName, std::vector<std::vector<exprtk::expression<double>>>* destination);
+	exprtk::parser<double>		parser_t;
+	exprtk::symbol_table<double> symbol_table_t;
+
+
 
 	void PrintMatrix(std::vector<std::vector<double>> mat, std::string name);
 	void PrintVector(std::vector<double> vec, std::string name);

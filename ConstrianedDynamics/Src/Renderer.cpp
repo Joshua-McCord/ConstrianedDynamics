@@ -18,8 +18,8 @@ Renderer::~Renderer() {
 // Load and Store Shaders and Initialize all Renderers
 // ---------------------------------------------------
 void Renderer::initRenderData(std::vector<double> positions) {
-	this->LoadShader("C:/Users/jmccord34/source/repos/VectorField/VectorField/Shaders/Vertex/Particle.vert",
-		"C:/Users/jmccord34/source/repos/VectorField/VectorField/Shaders/Fragment/Particle.frag",
+	this->LoadShader("C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Shaders/Particle.vert",
+		"C:/Users/Josh/source/repos/ConstrianedDynamics/ConstrianedDynamics/Shaders/Particle.frag",
 		nullptr,
 		"particleShader");
 	this->initParticleRenderer(positions);
@@ -155,11 +155,3 @@ Shader Renderer::LoadShader(const char* vShaderFile, const char* fShaderFile, co
 	shaderManager[name] = loadShaderFromFile(vShaderFile, fShaderFile, gShaderFile);
 	return shaderManager[name];
 }
-
-//glm::vec3 Renderer::SetFillFromHUE(float hue) {
-//
-//    float R = abs(hue * 6.0 - 3.0) - 1.0;
-//    float G = 2.0 - abs(hue * 6.0 - 2.0);
-//    float B = 2.0 - abs(hue * 6.0 - 4.0);
-//    return glm::vec3(R, G, B);
-//}

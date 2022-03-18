@@ -9,7 +9,7 @@
 #include <string_view>
 #include <fstream>
 #include <sstream>
-#include "exprtk.hpp"
+#include <exprtk/exprtk.hpp>
 
 //namespace Logger {
 //	void PrintMatrix(std::vector<std::vector<double>> mat, std::string name);

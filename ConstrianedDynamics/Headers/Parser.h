@@ -10,11 +10,21 @@
 #include <string_view>
 #include <fstream>
 #include <sstream>
-#include "exprtk.hpp"
+#include <exprtk/exprtk.hpp>
 
-typedef exprtk::parser<double>       parser_d;
-static parser_d parser;
 
-void ParseFile(std::string fileName, std::vector<exprtk::expression<double>>* destination, exprtk::symbol_table<double> symbol_table_t);
+
+class Parser {
+public:
+
+
+	void ParseFile(std::string fileName, std::vector<exprtk::expression<double>>* destination, exprtk::symbol_table<double> symbol_table_t);
+	void ParseFile(std::string fileName, std::vector<std::pair<std::string, double>>* destination, exprtk::symbol_table<double> symbol_table_t, char dest);
+	void ParseFile(std::string fileName, std::vector<std::vector<double>>* destination, exprtk::symbol_table<double> symbol_table_t);
+
+private:
+	exprtk::parser<double> parser;
+
+};
 
 #endif // !PARSER
